@@ -47,12 +47,12 @@ public class CNNCifar10 {
     private static final int WIDTH = 32;
     private static final int HEIGHT = 32;
 
-    private static final int BATCH_SIZE = 100;
-    private static final int ITERATIONS = 10;
+    private static final int TAM_BATCH = 100;
+    private static final int ITERACIONES = 10;
 
     private static final int SEED = 123;
 
-    private static final List<String> LABELS = Arrays.asList("airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck");
+    private static final List<String> ETIQUETAS = Arrays.asList("airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck");
 
     private static final Logger log = LoggerFactory.getLogger(CNNCifar10.class);
 
@@ -61,8 +61,8 @@ public class CNNCifar10 {
         
         System.out.println(System.getProperty("user.home"));
         
-        int splitTrainNum = (int) (BATCH_SIZE * 0.8);
-        int listenerFreq = ITERATIONS / 5;
+        int splitTrainNum = (int) (TAM_BATCH * 0.8);
+        int listenerFreq = ITERACIONES / 5;
 
         DataSet cifarDataSet;
         SplitTestAndTrain trainAndTest;
@@ -78,17 +78,17 @@ public class CNNCifar10 {
             public Writable convert(Writable writable) throws WritableConverterException {
                 if (writable instanceof Text) {
                     String label = writable.toString().replaceAll("\u0000", "");
-                    int index = LABELS.indexOf(label);
+                    int index = ETIQUETAS.indexOf(label);
                     return new IntWritable(index);
                 }
                 return writable;
             }
-        }, BATCH_SIZE, 1024, 10);
+        }, TAM_BATCH, 1024, 10);
 
         MultiLayerNetwork model = new MultiLayerNetwork(getConfiguration());
         model.init();
 
-        log.info("Train model");
+        log.info("Entrenando Modelo...");
         while (dataSetIterator.hasNext()) {
             model.setListeners(Arrays.asList((IterationListener) new ScoreIterationListener(listenerFreq)));
             cifarDataSet = dataSetIterator.next();
@@ -99,8 +99,8 @@ public class CNNCifar10 {
             model.fit(trainInput);
         }
 
-        log.info("Evaluate model");
-        Evaluation eval = new Evaluation(LABELS.size());
+        log.info("Evaluando Modelo...");
+        Evaluation eval = new Evaluation(ETIQUETAS.size());
         for (int i = 0; i < testInput.size(); i++) {
             INDArray output = model.output(testInput.get(i));
             eval.eval(testLabels.get(i), output);
@@ -112,8 +112,8 @@ public class CNNCifar10 {
     public static MultiLayerConfiguration getConfiguration() {
         MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
                 .seed(SEED)
-                .batchSize(BATCH_SIZE)
-                .iterations(ITERATIONS)
+                .batchSize(TAM_BATCH)
+                .iterations(ITERACIONES)
                 .momentum(0.9)
                 .regularization(true)
                 .constrainGradientToUnitNorm(true)
@@ -146,7 +146,7 @@ public class CNNCifar10 {
                         .build())
                 .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.MSE)
                         .nIn(1000)
-                        .nOut(LABELS.size())
+                        .nOut(ETIQUETAS.size())
                         .dropOut(0.5)
                         .weightInit(WeightInit.XAVIER)
                         .build())
@@ -160,12 +160,15 @@ public class CNNCifar10 {
 
 
     public static RecordReader loadData() throws Exception {
+        System.out.println("Cargando imagenes ...");
         RecordReader imageReader = new ImageRecordReader(32, 32, false);
-        imageReader.initialize(new FileSplit(new File(System.getProperty("user.home"), "/deep-learning/data/cifar/img")));
+        imageReader.initialize(new FileSplit(new File(System.getProperty("user.home"), "/deepLearning/sets/cifar10/img/train")));
+        
 
+        System.out.println("Cargando archivo de etiquetas...");
         RecordReader labelsReader = new CSVRecordReader();
-        labelsReader.initialize(new FileSplit(new File(System.getProperty("user.home"), "/deep-learning/data/cifar/labels.csv")));
-
+        labelsReader.initialize(new FileSplit(new File(System.getProperty("user.home"), "/deepLearning/sets/cifar10/trainLabels.csv")));
+        
         return new ComposableRecordReader(imageReader, labelsReader);
     }
 }
